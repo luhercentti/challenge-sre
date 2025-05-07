@@ -1,8 +1,10 @@
 # Luis Hernandez Centti
 
-├── scripts/
-│   ├── publish_test_events.py    # Script para enviar eventos de prueba
-│   └── insert_test_data.py       # Script para insertar datos directamente en BigQuery
+a) Pub/Sub (Ingesta de Datos)
+b) Cloud Run (API)
+c) BigQuery (Procesamiento)
+d) Almacenamiento (Cloud Storage)
+
 
 
 ////////
@@ -46,10 +48,7 @@ gcloud auth application-default login
 
 python3 scripts/publish_test_events.py --project=lhc-demo-1
 
-wait 15 minutes and then check cloud run url /events for samples:
-
-[{"event_data":{"browser":"Edge","country":"FR","device":"tablet","event_type":"form_submit","page":"/contact","user_id":"user_2"},"event_id":"eef63cfb-70e0-4621-9c25-912408656a72","timestamp":"Wed, 07 May 2025 08:25:14 GMT"},{"event_data":{"browser":"Safari","country":"FR","device":"tablet","event_type":"page_view","page":"/checkout","user_id":"user_6"},"event_id":"33e41f93-0d7e-4fa8-9a3e-a74ff0b6f53f","timestamp":"Wed, 07 May 2025 08:25:13 GMT"},{"event_data":{"amount":333.82,"browser":"Edge","country":"FR","device":"desktop","event_type":"purchase","items":1,"page":"/products","user_id":"user_9"},"event_id":"9a997c98-9bf9-41e8-adec-fdae44aaa94b","timestamp":"Wed, 07 May 2025 08:25:11 GMT"},{"event_data":{"amount":138.94,"browser":"Firefox","country":"FR","device":"tablet","event_type":"purchase","items":5,"page":"/about","user_id":"user_1"},"event_id":"f0f9b8d8-4da9-4ec5-852d-567838c06ce8","timestamp":"Wed, 07 May 2025 08:25:10 GMT"},{"event_data":{"browser":"Edge","country":"US","device":"mobile","event_type":"page_view","page":"/products","user_id":"user_7"},"event_id":"897ea353-9a62-4186-bfd8-36eacf9e598e","timestamp":"Wed, 07 May 2025 08:25:09 GMT"},{"event_data":{"browser":"Firefox","country":"MX","device":"mobile","event_type":"form_submit","page":"/home","user_id":"user_10"},"event_id":"e9f9e2cf-cb7f-43e4-a8d2-70f14500d574","timestamp":"Wed, 07 May 2025 08:25:08 GMT"},{"event_data":{"amount":204.28,"browser":"Firefox","country":"UK","device":"desktop","event_type":"purchase","items":1,"page":"/about","user_id":"user_7"},"event_id":"f6ba54cd-fcc3-4fa9-bbbc-eb4f7c91bd9b","timestamp":"Wed, 07 May 2025 08:25:07 GMT"},{"event_data":{"browser":"Safari","country":"US","device":"tablet","event_type":"click","page":"/about","user_id":"user_6"},"event_id":"1ae4b162-9458-4a97-b18a-e270f2b6e8b5","timestamp":"Wed, 07 May 2025 08:25:06 GMT"},{"event_data":{"browser":"Chrome","country":"CA","device":"mobile","event_type":"login","page":"/checkout","user_id":"user_2"},"event_id":"7db4e4a7-8b39-4e1e-a2ef-ad388281b72e","timestamp":"Wed, 07 May 2025 08:25:05 GMT"},{"event_data":{"browser":"Safari","country":"MX","device":"mobile","event_type":"click","page":"/about","user_id":"user_5"},"event_id":"05388390-a3de-4091-9dcf-cd4877871943","timestamp":"Wed, 07 May 2025 08:25:03 GMT"}]
-
+wait 15 minutes and then check cloud run url /events for samples
 
 /////////
 
@@ -75,8 +74,6 @@ GitHub Actions automatiza el despliegue
 Construye y publica la imagen Docker a Google Container Registry
 Aplica la infraestructura usando Terraform
 
-
-
 ////
 
 Flujo de Datos End-to-End
@@ -95,7 +92,6 @@ La API de Cloud Run ejecuta una consulta a BigQuery para obtener los eventos má
 Los resultados se transforman y se devuelven como JSON al cliente
 
 
-
 Implementación
 El despliegue se realiza automáticamente cuando se hace push a las ramas main o develop:
 
@@ -103,8 +99,6 @@ GitHub Actions ejecuta el workflow de CI/CD
 Se construye y publica la imagen Docker de la API
 Terraform aplica la configuración de infraestructura
 El sistema completo queda operativo
-
-
 
 Pruebas
 Para probar el sistema, puede:
@@ -119,8 +113,113 @@ Consultar la API:
 bashcurl https://data-api-xxxxxxxxxxxx.run.app/events
 
 
+///// 
 
-///// mejoras
+Parte 3:
+1. Proponer otras pruebas de integración que validen que el sistema está funcionando
+correctamente y cómo se implementarían:
+-Hay muchas formas de hacer esto, creando mas tests cases para cada componente del stack, por ejemplo creando un test a ver si se subio los json generados al bucket, o otro test a ver si los mensajes llegan a bigquery luego del tiempo de espoera 15 minutos, pruebas de escalabildiad de pub/sub, etc.
+
+2. Identificar posibles puntos críticos del sistema (a nivel de fallo o performance)
+diferentes al punto anterior y proponer formas de testearlos o medirlos (no
+implementar)
+- La transferencia desde PubSub a BigQuery mediante Storage no es instantánea (puede tomar de 15-30 minutos según la configuración), lo que hace que los datos no están disponibles inmediatamente para consulta en la API, o que se pierdan datos en caso de error durante la transferencia
+- En cloud run sobre la api cloud run es autoescalable pero hay limites tambien en concurrencia. 
+- Las consultas a BigQuery pueden ser costosas y lentas con grandes volúmenes de datos
+- Posible throttling o timeout en consultas complejas
+- Tambien pueden haber problemas si los json no se manejan correctamente por algun componente del stack.
+
+3. Proponer cómo robustecer técnicamente el sistema para compensar o solucionar
+dichos puntos críticos
+- La transferencia de datos desde PubSub a BigQuery mediante el bucket de Storage puede tener latencia significativa, por eso se sugiere implementar un flujo alternativo directo con Dataflow.
+- Dead Letter Queue (DLQ)(donde ven los mensajes no procesados correctamente, aislando errores) , y políticas de retry para manejo de errores.
+- Para las limitaciones que pueda tener cloud run se sugiere usar un cache con Redis para optimizar consultas.
+- Para la seguridad de cloud run podemos implementar api gateway que brinda opciones de seguridad como id tokens, y gestionar authentificacion como JWT, API keys, OAuth2) y aplicar políticas más granulares.
+
+
+///////
+
+Parte 4:
+
+1. Proponer 3 métricas (además de las básicas CPU/RAM/DISK USAGE) críticas para
+entender la salud y rendimiento del sistema end-to-end
+- Latencia del pipeline de datos end to end. Medir el tiempo transcurrido desde que un mensaje se publica en Pub/Sub hasta que está disponible para consulta en BigQuery.
+- Tasa de error en cada componente del sistema, Porcentaje de operaciones fallidas vs. total de operaciones en cada componente (Pub/Sub, Storage, BigQuery Transfer, API).
+- Numero de mensajes procesados que fluyan por el stack hecho, para un mejor dimensionamiento y seteo de configuracion de infraestructura.
+
+2. Proponer una herramienta de visualización y describe textualmente qué métricas
+mostraría, y cómo esta información nos permitiría entender la salud del sistema para
+tomar decisiones estratégicas
+- La herramienta a usar por ser Google Cloud seria Google Cloud monitoring, crear un dashboard para cada componente(servicio) del stack. Mostraria metricas para cada servicio:
+Pub/sub:  backlog, publish rate, latency, y mas
+Bigquery: query execution time, data ingestion latency, failed queries, y mas
+Cloud run: request lantency, count, error rate claro, cpu y memoria basicos, y mas
+Cloud storage: bucket size, object count, error rates, transfer volume y mas.
+Nos ayudaria a detectar cuellos de botella, dataflow latencia y errores, y uso de recursos.
+
+3. Describe a grandes rasgos cómo sería la implementación de esta herramienta en la
+nube y cómo esta recolectaría las métricas del sistema
+- Los servicios ya exponen por defecto a cloud monitoring, entonces haria falta crear los dashboards, podemos usar monitoring como codigo para consitencia. 
+
+4. Describe cómo cambiará la visualización si escalamos la solución a 50 sistemas
+similares y qué otras métricas o formas de visualización nos permite desbloquear
+este escalamiento.
+- Camnbiariamos parametros de dashboasrds para usar vistas conjuntas o agregadas rapidamente.
+- Agrupamiento en jerarquia para mayor granularidad.
+- Heatmaps dashboard para ver rapidamente errores en alguna servicio del stack.
+
+5. Comenta qué dificultades o limitaciones podrían surgir a nivel de observabilidad de
+los sistemas de no abordarse correctamente el problema de escalabilidad
+- Mucha data genera dashboards o queryes lentos, habria que optimizar queries.
+- Yo sugeriria usar tambien servicios o softwware de observabilidad externos , como servidores o SaaS , de preferencia New relic que tiene todo build it y escalable, o si se quiere open source para observabilidad pues prometheus y grafana o ELK para logs centralizados.
+
+  GCP_Logs --> Logstash --> Elasticsearch --> Kibana
+
+o sino :
+
+![alt text](image.png)
+///////
+
+Parte 5:
+
+1. Define específicamente qué reglas o umbrales utilizarías para las métricas
+propuestas, de manera que se disparan alertas al equipo al decaer la performance
+del sistema. Argumenta.
+- Para cada parte del stack:
+pub/sub: backlog_messages, message_age, send_request_count
+cloud run: request_latency, request_count(errores 5xx), container_memory_utilization o cpu usage.
+BigQuery: query/execution_times, slots/utilization, jobs/failed, BigQuery Data Transfer Service fallos o errores.
+cloud storage: request_count errores 5xx, storage/total_bytes execio un tamano establecido.
+Son algunas metricas relevantes para ver que no afecten al usuario final.
+
+2. Define métricas SLIs para los servicios del sistema y un SLO para cada uno de los
+SLIs. Argumenta por qué escogiste esos SLIs/SLOs y por qué desechaste otras
+métricas para utilizarlas dentro de la definición de SLIs.
+- SLIS indica que debemos de medir porque es lo que percibe el usuario final. Como comentamos antes la lantencia y los mensajes que son exitosos o los fallidos son mediciones reales que afectaran al usuario.
+- SLOS indicamos los valores correctos que obtenemos del analisis de los SLIS para definir valores de metricas correctas para un aceptable nivel de servicio.
+Algunas metricas para SLIs, como ya mencionamos antes pueden ser:
+SLI                                                                SLO
+1. pub/sub
+porcentaje de mensajes publciados en un rango de tiempo      -     cumplido porcentaje minimo requerido de mensages escritos en un rango de tiempo
+mensajes existosos publicados                                -     99% mensual , perdida de tan solo 0.0.1%
+2. API(cloud run)
+total requests correctos 2xx mas 3xxx                        -    99.5% mensual (máximo 0.5% de errores)
+tiempo de respuesta                                          -    95% de requests < 800ms. (ejemplo de umbrales)
+3. Big query
+exitosas / Total queries ejecutadas) * 100.                  -   99% mensual (1% de fallos tolerados).
+rendimienteo de consultas Percentil (p90) del tiempo de ejecución. - 90% de queries < 15 segundos (ejemplo de limite)
+4. Cloud storage
+(Operaciones GET exitosas / Total operaciones GET) * 100.     - 99.9% mensual, servicio critico para la ingesta
+
+- Se descartaron las metricas cpu ,memoria por ejemplo porque son metricas de capacidad no de calidad de servicio, y el usuario final realmente no ve estas metricas.
+
+"SLI es el dato, SLO es la meta."
+"Si el usuario no lo percibe, no es un SLI válido. Si no afecta el SLO, no merece una alerta crítica."
+
+SLI es como el termómetro que mide la fiebre, y el SLO es como el diagnóstico ("si la fiebre > 38°C, hay problema").
+
+///////
+mejoras:
 
 Solución propuesta: Implementar un flujo alternativo directo con Dataflow
 
