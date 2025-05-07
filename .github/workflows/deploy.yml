@@ -75,8 +75,34 @@ jobs:
           TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
           TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
 
-      - name: Wait for 10 minutes
-        run: sleep 200
+      # Obtener la URL de la API
+      - name: Get API URL
+        id: get-url
+        run: |
+          API_URL=$(gcloud run services describe data-api --platform managed --region $(terraform output -state=./infra/terraform.tfstate -raw region) --format="value(status.url)")
+          echo "API_URL=$API_URL" >> $GITHUB_ENV
+      
+      # Instalar dependencias para las pruebas
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests google-cloud-bigquery pandas pytest
+      
+      # Ejecutar pruebas de integración
+      - name: Run Integration Tests
+        run: |
+          python -m pytest tests/test_api_integration.py -v
+        env:
+          API_URL: ${{ env.API_URL }}
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT }}
+
+      - name: Wait for X minutes
+        run: sleep 300
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve

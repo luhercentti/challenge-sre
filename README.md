@@ -18,6 +18,19 @@ curl -X POST https://advana-challenge-check-api-cr-k4hdbggvoq-uc.a.run.app/devop
   }'
 
 
+gcloud projects add-iam-policy-binding lhc-demo-1 \
+  --member="serviceAccount:terraform@lhc-demo-1.iam.gserviceaccount.com" \
+  --role="roles/cloudbuild.builds.builder"
+
+gcloud projects add-iam-policy-binding lhc-demo-1 \
+  --member="serviceAccount:terraform@lhc-demo-1.iam.gserviceaccount.com" \
+  --role="roles/run.admin"
+
+gcloud projects add-iam-policy-binding lhc-demo-1 \
+  --member="serviceAccount:terraform@lhc-demo-1.iam.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountUser"
+
+
 
 para finops ver costs:
 cd /infra
@@ -105,3 +118,31 @@ bashpython scripts/insert_test_data.py --project YOUR_PROJECT_ID
 Consultar la API:
 bashcurl https://data-api-xxxxxxxxxxxx.run.app/events
 
+
+
+///// mejoras
+
+Solución propuesta: Implementar un flujo alternativo directo con Dataflow
+
+La transferencia de datos desde PubSub a BigQuery mediante el bucket de Storage puede tener latencia significativa
+Potencial pérdida de datos si hay problemas en algún punto del flujo
+
+# Crear un job de Dataflow para streaming directo de Pub/Sub a BigQuery
+resource "google_dataflow_job" "pubsub_to_bigquery" {
+  name                  = "pubsub-to-bigquery-streaming"
+  template_gcs_path     = "gs://dataflow-templates/latest/PubSub_to_BigQuery"
+  temp_gcs_location     = "${google_storage_bucket.pubsub_export.url}/temp"
+  service_account_email = google_service_account.bq_transfer_sa.email
+  
+  parameters = {
+    inputTopic          = google_pubsub_topic.data_topic.id
+    outputTableSpec     = "${var.gcp_project}:${google_bigquery_dataset.analytics.dataset_id}.${google_bigquery_table.events.table_id}"
+    messageFormat       = "JSON"
+  }
+  
+  depends_on = [
+    google_project_service.required_apis,
+    google_bigquery_table.events,
+    google_pubsub_topic.data_topic
+  ]
+}
