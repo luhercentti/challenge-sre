@@ -31,7 +31,9 @@ jobs:
             gcloud services enable \
             bigquerydatatransfer.googleapis.com \
             monitoring.googleapis.com \
-            run.googleapis.com
+            run.googleapis.com \
+            cloudbuild.googleapis.com
+
 
         # Build and push Docker image FIRST
       - name: Build and Push API Image
@@ -39,7 +41,7 @@ jobs:
           gcloud builds submit ./api \
             --tag gcr.io/${{ secrets.GCP_PROJECT }}/data-api:latest \
             --project ${{ secrets.GCP_PROJECT }}
-            
+
 
       # Initialize Terraform
       - name: Terraform Init
