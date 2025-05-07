@@ -114,6 +114,7 @@ resource "google_bigquery_data_transfer_config" "pubsub_to_bq" {
 resource "google_monitoring_alert_policy" "api_high_errors" {
   display_name = "High API Error Rate"
   combiner     = "OR"
+  
   conditions {
     display_name = "Error rate > 5%"
     condition_threshold {
@@ -121,6 +122,10 @@ resource "google_monitoring_alert_policy" "api_high_errors" {
       threshold_value = 5.0
       duration   = "300s"
       comparison = "COMPARISON_GT"
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_RATE"
+      }
     }
   }
 }

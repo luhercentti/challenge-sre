@@ -25,6 +25,22 @@ jobs:
       # Configure gcloud
       - uses: google-github-actions/setup-gcloud@v1
 
+
+      - name: Enable Required APIs
+        run: |
+            gcloud services enable \
+            bigquerydatatransfer.googleapis.com \
+            monitoring.googleapis.com \
+            run.googleapis.com
+
+        # Build and push Docker image FIRST
+      - name: Build and Push API Image
+        run: |
+          gcloud builds submit ./api \
+            --tag gcr.io/${{ secrets.GCP_PROJECT }}/data-api:latest \
+            --project ${{ secrets.GCP_PROJECT }}
+            
+
       # Initialize Terraform
       - name: Terraform Init
         run: terraform init
