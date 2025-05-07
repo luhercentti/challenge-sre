@@ -21,6 +21,8 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
           project_id: ${{ secrets.GCP_PROJECT }}
+          scopes: "https://www.googleapis.com/auth/cloud-platform"
+
 
       # Configure gcloud
       - uses: google-github-actions/setup-gcloud@v1
@@ -32,16 +34,11 @@ jobs:
             bigquerydatatransfer.googleapis.com \
             monitoring.googleapis.com \
             run.googleapis.com \
-            cloudbuild.googleapis.com
-
-
-        # Build and push Docker image FIRST
-      - name: Build and Push API Image
-        run: |
-          gcloud builds submit ./api \
-            --tag gcr.io/${{ secrets.GCP_PROJECT }}/data-api:latest \
-            --project ${{ secrets.GCP_PROJECT }}
-
+            cloudbuild.googleapis.com \
+            cloudresourcemanager.googleapis.com \
+            pubsub.googleapis.com \
+            bigquery.googleapis.com \
+            iam.googleapis.com
 
       # Initialize Terraform
       - name: Terraform Init
