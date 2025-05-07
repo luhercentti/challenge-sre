@@ -6,3 +6,4 @@ infra/tfplan.json
 infra/tfplan.binary
 infra/terraform.tfstate
 infra/terraform.tfstate.backup
+.terraform/
