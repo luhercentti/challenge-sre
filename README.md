@@ -1,11 +1,11 @@
 # Luis Hernandez Centti
 
-a) Pub/Sub (Ingesta de Datos)
-b) Cloud Run (API)
-c) BigQuery (Procesamiento)
-d) Almacenamiento (Cloud Storage)
+1) Pub/Sub (Ingesta de Datos)
+2) Cloud Run (API)
+3) BigQuery (Procesamiento)
+4) Almacenamiento (Cloud Storage)
 
-
+![alt text](diagrama.png)
 
 ////////
 
