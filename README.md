@@ -110,10 +110,10 @@ Pruebas
 Para probar el sistema, puede:
 
 Publicar eventos de prueba:
-bashpython scripts/publish_test_events.py --project YOUR_PROJECT_ID --topic data-ingestion-topic
+python scripts/publish_test_events.py --project YOUR_PROJECT_ID --topic data-ingestion-topic
 
 Insertar datos directamente en BigQuery (para pruebas rápidas):
-bashpython scripts/insert_test_data.py --project YOUR_PROJECT_ID
+python scripts/insert_test_data.py --project YOUR_PROJECT_ID
 
 Consultar la API:
 bashcurl https://data-api-xxxxxxxxxxxx.run.app/events
