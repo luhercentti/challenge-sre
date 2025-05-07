@@ -1,7 +1,7 @@
 provider "google" {
   project = var.gcp_project
   region  = var.region
-  #credentials = file("terraform-key.json")
+  credentials = file("terraform-key.json")
 }
 
 # Enable required APIs
@@ -12,7 +12,8 @@ resource "google_project_service" "required_apis" {
     "run.googleapis.com",
     "artifactregistry.googleapis.com",
     "bigquerydatatransfer.googleapis.com",
-    "monitoring.googleapis.com"
+    "monitoring.googleapis.com",
+    "dataflow.googleapis.com"  # Added Dataflow API which is needed for PubSub transfers
   ])
   project = var.gcp_project
   service = each.key
@@ -74,9 +75,21 @@ resource "google_service_account" "api_sa" {
   depends_on = [google_project_service.required_apis]
 }
 
+resource "google_project_iam_member" "permissions" {
+  project = var.gcp_project
+  role   = "roles/iam.serviceAccountTokenCreator"
+  member  = "serviceAccount:${google_service_account.api_sa.email}"
+}
+
 resource "google_project_iam_member" "bq_access" {
   project = var.gcp_project
   role    = "roles/bigquery.dataViewer"
+  member  = "serviceAccount:${google_service_account.api_sa.email}"
+}
+
+resource "google_project_iam_member" "bq_job_user" {
+  project = var.gcp_project
+  role    = "roles/bigquery.jobUser"  # Required to run queries
   member  = "serviceAccount:${google_service_account.api_sa.email}"
 }
 
@@ -88,8 +101,11 @@ resource "google_cloud_run_service" "data_api" {
   template {
     spec {
       containers {
-        # Using a public Hello World image for testing
         image = "gcr.io/${var.gcp_project}/data-api:latest"
+         env {
+          name  = "GOOGLE_CLOUD_PROJECT"
+          value = var.gcp_project  # Critical fix
+         }
       }
       service_account_name = google_service_account.api_sa.email
     }
@@ -118,27 +134,37 @@ resource "google_cloud_run_service_iam_policy" "noauth" {
   policy_data = data.google_iam_policy.noauth.policy_data
 }
 
-# Comentado el bloque de transferencia Pub/Sub a BigQuery ya que requiere configuración adicional
-# Descomenta y configura correctamente cuando estés listo para usarlo
-
-resource "google_bigquery_data_transfer_config" "pubsub_to_bq" {
-  display_name           = "pubsub-to-bq"
-  location               = var.region
-  data_source_id         = "pubsub"
-  schedule               = "every 5 minutes"
-  destination_dataset_id = google_bigquery_dataset.analytics.dataset_id
-  params = {
-    topic                = google_pubsub_topic.data_topic.id
-    write_disposition    = "WRITE_APPEND"
-    subscription_project = var.gcp_project
-    table_id             = google_bigquery_table.events.table_id
-  }
-  depends_on = [
-    google_project_service.required_apis,
-    google_bigquery_table.events
-  ]
+# Service account for BigQuery Data Transfer Service
+resource "google_service_account" "bq_transfer_sa" {
+  account_id   = "bq-transfer-service-account"
+  display_name = "Service Account for BigQuery Data Transfer"
+  depends_on = [google_project_service.required_apis]
 }
 
+# Grant necessary permissions to the transfer service account
+resource "google_project_iam_member" "transfer_pubsub_subscriber" {
+  project = var.gcp_project
+  role    = "roles/pubsub.subscriber"
+  member  = "serviceAccount:${google_service_account.bq_transfer_sa.email}"
+}
+
+resource "google_project_iam_member" "transfer_bq_editor" {
+  project = var.gcp_project
+  role    = "roles/bigquery.dataEditor"
+  member  = "serviceAccount:${google_service_account.bq_transfer_sa.email}"
+}
+
+resource "google_pubsub_topic_iam_member" "allow_transfer_sa" {
+  topic  = google_pubsub_topic.data_topic.name
+  role   = "roles/pubsub.subscriber"
+  member = "serviceAccount:${google_service_account.bq_transfer_sa.email}"
+}
+
+# Wait for APIs to be fully enabled
+resource "time_sleep" "wait_for_apis" {
+  depends_on = [google_project_service.required_apis]
+  create_duration = "90s"
+}
 
 # Monitoreo básico
 resource "google_monitoring_alert_policy" "api_high_errors" {
