@@ -18,22 +18,22 @@ def get_events():
         query = f"""
             SELECT 
                 event_id,
-                CAST(event_data AS STRING) AS event_data,
+                TO_JSON_STRING(event_data) AS event_data,
                 timestamp
             FROM `{project_id}.analytics_data.events`
             ORDER BY timestamp DESC
             LIMIT 100
         """
-        
+
         logger.info(f"Executing query: {query}")
         df = client.query(query).to_dataframe()
 
-        # Try to parse event_data JSON strings
+        # Parse event_data JSON strings
         def safe_parse(json_str):
             try:
                 return json.loads(json_str)
             except (TypeError, json.JSONDecodeError):
-                return json_str  # fallback to original string
+                return json_str
 
         if 'event_data' in df.columns:
             df['event_data'] = df['event_data'].apply(safe_parse)
