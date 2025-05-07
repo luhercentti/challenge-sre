@@ -78,7 +78,7 @@ jobs:
             --allow-unauthenticated
 
       - name: Wait for 10 minutes
-        run: sleep 600
+        run: sleep 200
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve

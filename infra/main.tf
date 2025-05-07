@@ -1,7 +1,7 @@
 provider "google" {
   project = var.gcp_project
   region  = var.region
-  #credentials = file("terraform-key.json")
+  credentials = file("terraform-key.json")
 }
 
 # 1. Pub/Sub para ingesta
