@@ -93,7 +93,6 @@ resource "google_project_iam_member" "bq_job_user" {
   member  = "serviceAccount:${google_service_account.api_sa.email}"
 }
 
-# Option 1: Use an existing public image for testing
 resource "google_cloud_run_service" "data_api" {
   name     = "data-api"
   location = var.region
@@ -104,7 +103,7 @@ resource "google_cloud_run_service" "data_api" {
         image = "gcr.io/${var.gcp_project}/data-api:latest"
          env {
           name  = "GOOGLE_CLOUD_PROJECT"
-          value = var.gcp_project  # Critical fix
+          value = var.gcp_project
          }
       }
       service_account_name = google_service_account.api_sa.email
