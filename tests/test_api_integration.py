@@ -3,6 +3,7 @@ import requests
 import os
 import json
 from google.cloud import bigquery
+from datetime import datetime, timezone  # Add these imports
 
 class TestApiIntegration(unittest.TestCase):
     """Pruebas de integración para verificar que la API expone correctamente los datos de BigQuery"""
@@ -23,8 +24,8 @@ class TestApiIntegration(unittest.TestCase):
     @classmethod
     def _insert_test_data(cls):
         """Inserta datos de prueba en BigQuery para verificación"""
-        dataset_ref = cls.bq_client.dataset('analytics_data')
-        table_ref = dataset_ref.table('events')
+        # Updated to use string reference instead of deprecated dataset() method
+        table_ref = f"{cls.project_id}.analytics_data.events"
         table = cls.bq_client.get_table(table_ref)
         
         # Datos de prueba con un ID único para identificarlos
@@ -33,7 +34,7 @@ class TestApiIntegration(unittest.TestCase):
             {
                 "event_id": test_event_id,
                 "event_data": json.dumps({"test_key": "test_value"}),
-                "timestamp": bigquery.datetime.datetime.now(bigquery.datetime.timezone.utc)
+                "timestamp": datetime.now(timezone.utc).isoformat()  # Use datetime from standard library
             }
         ]
         
