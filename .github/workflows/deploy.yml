@@ -10,32 +10,36 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # Autenticación en GCP
+      # Install Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.9.5" 
+
+      # Authenticate to GCP
       - uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}  # Referencia al secreto
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
-      # Configura gcloud y Terraform
+      # Configure gcloud
       - uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: ${{ secrets.GCP_PROJECT }}  # También puedes poner el ID directamente
 
-      # Inicializa Terraform
+      # Initialize Terraform
       - name: Terraform Init
         run: terraform init
         working-directory: ./infra
 
-      # Terraform plan
+      # Apply Terraform changes
       - name: Terraform Plan
         run: terraform plan
         working-directory: ./infra
 
-    #   # Aplica los cambios de Terraform
+    #   # Apply Terraform changes
     #   - name: Terraform Apply
     #     run: terraform apply -auto-approve
     #     working-directory: ./infra
 
-    #   # Construye y despliega la API en Cloud Run
+    #   # Build and deploy API
     #   - name: Build and Deploy API
     #     run: |-
     #       gcloud builds submit ./api \
