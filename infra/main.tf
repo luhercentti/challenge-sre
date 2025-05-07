@@ -92,22 +92,6 @@ resource "google_cloud_run_service_iam_policy" "noauth" {
   policy_data = data.google_iam_policy.noauth.policy_data
 }
 
-# Configuración de Cloud Build
-resource "google_cloudbuild_trigger" "api_deploy" {
-  name        = "data-api-deploy"
-  description = "Despliegue automático de la API"
-
-  github {
-    owner = "tu-usuario"
-    name  = "tu-repositorio"
-    push {
-      branch = "^main$"
-    }
-  }
-
-  filename = "cloudbuild.yaml"
-}
-
 
 //////Configuración de Pub/Sub a BigQuery (Opcional)
 
@@ -121,5 +105,22 @@ resource "google_bigquery_data_transfer_config" "pubsub_to_bq" {
   params = {
     topic                = google_pubsub_topic.data_topic.id
     write_disposition    = "WRITE_APPEND"
+  }
+}
+
+
+/// monitoreo basico
+
+resource "google_monitoring_alert_policy" "api_high_errors" {
+  display_name = "High API Error Rate"
+  combiner     = "OR"
+  conditions {
+    display_name = "Error rate > 5%"
+    condition_threshold {
+      filter     = "resource.type=\"cloud_run_revision\" AND metric.type=\"run.googleapis.com/request_count\""
+      threshold_value = 5.0
+      duration   = "300s"
+      comparison = "COMPARISON_GT"
+    }
   }
 }

@@ -49,6 +49,7 @@ jobs:
     #     working-directory: ./infra
     #     env:
     #       TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
+    #       TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
 
     #   # Build and deploy API
     #   - name: Build and Deploy API
