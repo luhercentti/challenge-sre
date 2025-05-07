@@ -41,40 +41,39 @@ jobs:
             bigquery.googleapis.com \
             iam.googleapis.com
 
-    #  # 1. FIRST build and push the Docker image
-    #   - name: Build and Push Image
-    #     run: |
-    #         cd api
-    #         gcloud builds submit \
-    #         --tag gcr.io/${{ secrets.GCP_PROJECT }}/data-api:latest \
-    #         --project ${{ secrets.GCP_PROJECT }}
+     # 1. FIRST build and push the Docker image
+      - name: Build and Push Image
+        run: |
+            cd api
+            gcloud builds submit \
+            --tag gcr.io/${{ secrets.GCP_PROJECT }}/data-api:latest \
+            --project ${{ secrets.GCP_PROJECT }}
 
-    #   # Initialize Terraform
-    #   - name: Terraform Init
-    #     run: terraform init
-    #     working-directory: ./infra
-    #     env:
-    #       TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
-    #       TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
-
-
-    #   # Apply Terraform changes
-    #   - name: Terraform Plan
-    #     run: terraform plan
-    #     working-directory: ./infra
-    #     env:
-    #       TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
-    #       TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
+      # Initialize Terraform
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./infra
+        env:
+          TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
+          TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
 
 
-    #   # Apply Terraform changes
-    #   - name: Terraform Apply
-    #     run: terraform apply -auto-approve
-    #     working-directory: ./infra
-    #     env:
-    #       TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
-    #       TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
+      # Apply Terraform changes
+      - name: Terraform Plan
+        run: terraform plan
+        working-directory: ./infra
+        env:
+          TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
+          TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
 
+
+      # Apply Terraform changes
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: ./infra
+        env:
+          TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
+          TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
 
 
        # Obtener la URL de la API
