@@ -166,6 +166,28 @@ resource "time_sleep" "wait_for_apis" {
   create_duration = "90s"
 }
 
+# # Fixed BigQuery Data Transfer Config
+# resource "google_bigquery_data_transfer_config" "pubsub_to_bq" {
+#   display_name           = "pubsub-to-bq"
+#   location               = var.region
+#   data_source_id         = "pubsub"
+#   schedule               = "every 5 minutes"
+#   destination_dataset_id = google_bigquery_dataset.analytics.dataset_id
+#   service_account_name   = google_service_account.bq_transfer_sa.email
+#   params = {
+#     destination_table_name_template = google_bigquery_table.events.table_id
+#     data_path_template = "projects/${var.gcp_project}/topics/${google_pubsub_topic.data_topic.name}" 
+#     write_disposition    = "WRITE_APPEND"
+#   }
+#   depends_on = [
+#     time_sleep.wait_for_apis,
+#     google_bigquery_table.events,
+#     google_project_iam_member.transfer_pubsub_subscriber,
+#     google_project_iam_member.transfer_bq_editor,
+#     google_pubsub_topic_iam_member.allow_transfer_sa
+#   ]
+# }
+
 # Monitoreo básico
 resource "google_monitoring_alert_policy" "api_high_errors" {
   display_name = "High API Error Rate"
