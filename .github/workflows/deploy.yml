@@ -43,21 +43,21 @@ jobs:
           TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
 
 
-    #   # Apply Terraform changes
-    #   - name: Terraform Apply
-    #     run: terraform apply -auto-approve
-    #     working-directory: ./infra
-    #     env:
-    #       TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
-    #       TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
+      # Apply Terraform changes
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: ./infra
+        env:
+          TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
+          TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
 
-    #   # Build and deploy API
-    #   - name: Build and Deploy API
-    #     run: |-
-    #       gcloud builds submit ./api \
-    #         --tag gcr.io/${{ secrets.GCP_PROJECT }}/data-api \
-    #       && gcloud run deploy data-api \
-    #         --image gcr.io/${{ secrets.GCP_PROJECT }}/data-api \
-    #         --platform managed \
-    #         --region us-central1 \
-    #         --allow-unauthenticated
+      # Build and deploy API
+      - name: Build and Deploy API
+        run: |-
+          gcloud builds submit ./api \
+            --tag gcr.io/${{ secrets.GCP_PROJECT }}/data-api \
+          && gcloud run deploy data-api \
+            --image gcr.io/${{ secrets.GCP_PROJECT }}/data-api \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated

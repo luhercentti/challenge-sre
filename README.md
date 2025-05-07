@@ -8,3 +8,11 @@ curl -X POST https://advana-challenge-check-api-cr-k4hdbggvoq-uc.a.run.app/devop
     "mail": "luisangelo.hernandez@globant.com",
     "github_url": "https://github.com/luhercentti/challenge-sre"
   }'
+
+
+
+
+
+para finops ver costs:
+cd /infra
+infracost breakdown --path=tfplan.json  
