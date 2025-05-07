@@ -31,6 +31,7 @@ jobs:
       - name: Enable Required APIs
         run: |
             gcloud services enable \
+            artifactregistry.googleapis.com \
             bigquerydatatransfer.googleapis.com \
             monitoring.googleapis.com \
             run.googleapis.com \
@@ -39,6 +40,14 @@ jobs:
             pubsub.googleapis.com \
             bigquery.googleapis.com \
             iam.googleapis.com
+
+     # 1. FIRST build and push the Docker image
+      - name: Build and Push Image
+        run: |
+            cd api
+            gcloud builds submit \
+            --tag gcr.io/${{ secrets.GCP_PROJECT }}/data-api:latest \
+            --project ${{ secrets.GCP_PROJECT }}
 
       # Initialize Terraform
       - name: Terraform Init
@@ -65,17 +74,6 @@ jobs:
         env:
           TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
           TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
-
-      # Build and deploy API
-      - name: Build and Deploy API
-        run: |-
-          gcloud builds submit ./api \
-            --tag gcr.io/${{ secrets.GCP_PROJECT }}/data-api \
-          && gcloud run deploy data-api \
-            --image gcr.io/${{ secrets.GCP_PROJECT }}/data-api \
-            --platform managed \
-            --region us-central1 \
-            --allow-unauthenticated
 
       - name: Wait for 10 minutes
         run: sleep 200
