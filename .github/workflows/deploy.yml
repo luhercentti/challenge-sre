@@ -31,7 +31,7 @@ jobs:
         run: terraform init
         working-directory: ./infra
         env:
-          TF_VAR_redshift_passwordt: ${{ secrets.REDSHIFT_PASSWORD }} 
+            TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
 
       # Apply Terraform changes
       - name: Terraform Plan
