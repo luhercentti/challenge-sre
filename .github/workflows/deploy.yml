@@ -30,6 +30,8 @@ jobs:
       - name: Terraform Init
         run: terraform init
         working-directory: ./infra
+        env:
+          TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }} 
 
       # Apply Terraform changes
       - name: Terraform Plan
