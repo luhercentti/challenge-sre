@@ -107,3 +107,19 @@ resource "google_cloudbuild_trigger" "api_deploy" {
 
   filename = "cloudbuild.yaml"
 }
+
+
+//////Configuración de Pub/Sub a BigQuery (Opcional)
+
+
+resource "google_bigquery_data_transfer_config" "pubsub_to_bq" {
+  display_name           = "pubsub-to-bq"
+  location               = var.region
+  data_source_id         = "pubsub"
+  schedule               = "every 5 minutes"
+  destination_dataset_id = google_bigquery_dataset.analytics.dataset_id
+  params = {
+    topic                = google_pubsub_topic.data_topic.id
+    write_disposition    = "WRITE_APPEND"
+  }
+}
