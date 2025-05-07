@@ -1,0 +1,47 @@
+name: Deploy to Google Cloud
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # Autenticación en GCP
+      - uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}  # Referencia al secreto
+
+      # Configura gcloud y Terraform
+      - uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}  # También puedes poner el ID directamente
+
+      # Inicializa Terraform
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./infra
+
+      # Terraform plan
+      - name: Terraform Plan
+        run: terraform plan
+        working-directory: ./infra
+
+    #   # Aplica los cambios de Terraform
+    #   - name: Terraform Apply
+    #     run: terraform apply -auto-approve
+    #     working-directory: ./infra
+
+    #   # Construye y despliega la API en Cloud Run
+    #   - name: Build and Deploy API
+    #     run: |-
+    #       gcloud builds submit ./api \
+    #         --tag gcr.io/${{ secrets.GCP_PROJECT }}/data-api \
+    #       && gcloud run deploy data-api \
+    #         --image gcr.io/${{ secrets.GCP_PROJECT }}/data-api \
+    #         --platform managed \
+    #         --region us-central1 \
+    #         --allow-unauthenticated
