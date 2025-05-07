@@ -1,7 +1,7 @@
 provider "google" {
   project = var.gcp_project
   region  = var.region
-  #credentials = file("terraform-key.json")
+  credentials = file("terraform-key.json")
 }
 
 # Enable required APIs
@@ -13,7 +13,8 @@ resource "google_project_service" "required_apis" {
     "artifactregistry.googleapis.com",
     "bigquerydatatransfer.googleapis.com",
     "monitoring.googleapis.com",
-    "dataflow.googleapis.com"  # Added Dataflow API which is needed for PubSub transfers
+    "dataflow.googleapis.com",
+    "storage.googleapis.com"  # Added Storage API for the bucket
   ])
   project = var.gcp_project
   service = each.key
@@ -31,6 +32,40 @@ resource "google_pubsub_topic" "data_topic" {
 resource "google_pubsub_subscription" "data_subscription" {
   name  = "data-subscription"
   topic = google_pubsub_topic.data_topic.name
+}
+
+# Add Cloud Storage bucket for storing PubSub exports
+resource "google_storage_bucket" "pubsub_export" {
+  name          = "${var.gcp_project}-pubsub-exports"
+  location      = var.region
+  force_destroy = true  # Allow terraform to delete the bucket even if it contains files
+  
+  lifecycle_rule {
+    condition {
+      age = 30  # Keep files for 30 days
+    }
+    action {
+      type = "Delete"
+    }
+  }
+  
+  depends_on = [google_project_service.required_apis]
+}
+
+# Grant the Pub/Sub service account access to the bucket
+data "google_project" "project" {
+}
+
+resource "google_storage_bucket_iam_member" "pubsub_storage_admin" {
+  bucket = google_storage_bucket.pubsub_export.name
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
+resource "google_storage_bucket_iam_member" "pubsub_storage_viewer" {
+  bucket = google_storage_bucket.pubsub_export.name
+  role   = "roles/storage.legacyBucketReader"
+  member = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
 
 # 2. BigQuery para almacenamiento analítico
@@ -153,6 +188,12 @@ resource "google_project_iam_member" "transfer_bq_editor" {
   member  = "serviceAccount:${google_service_account.bq_transfer_sa.email}"
 }
 
+resource "google_project_iam_member" "transfer_storage_admin" {
+  project = var.gcp_project
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${google_service_account.bq_transfer_sa.email}"
+}
+
 resource "google_pubsub_topic_iam_member" "allow_transfer_sa" {
   topic  = google_pubsub_topic.data_topic.name
   role   = "roles/pubsub.subscriber"
@@ -165,27 +206,49 @@ resource "time_sleep" "wait_for_apis" {
   create_duration = "90s"
 }
 
-# # Fixed BigQuery Data Transfer Config
-# resource "google_bigquery_data_transfer_config" "pubsub_to_bq" {
-#   display_name           = "pubsub-to-bq"
-#   location               = var.region
-#   data_source_id         = "pubsub"
-#   schedule               = "every 5 minutes"
-#   destination_dataset_id = google_bigquery_dataset.analytics.dataset_id
-#   service_account_name   = google_service_account.bq_transfer_sa.email
-#   params = {
-#     destination_table_name_template = google_bigquery_table.events.table_id
-#     data_path_template = "projects/${var.gcp_project}/topics/${google_pubsub_topic.data_topic.name}" 
-#     write_disposition    = "WRITE_APPEND"
-#   }
-#   depends_on = [
-#     time_sleep.wait_for_apis,
-#     google_bigquery_table.events,
-#     google_project_iam_member.transfer_pubsub_subscriber,
-#     google_project_iam_member.transfer_bq_editor,
-#     google_pubsub_topic_iam_member.allow_transfer_sa
-#   ]
-# }
+# Create a Pub/Sub subscription with Cloud Storage export
+resource "google_pubsub_subscription" "export_to_storage" {
+  name  = "export-to-storage"
+  topic = google_pubsub_topic.data_topic.name
+  
+  cloud_storage_config {
+    bucket = google_storage_bucket.pubsub_export.name
+    filename_prefix = "events-"
+    filename_suffix = ".json"
+    max_duration = "60s"  # 5 minutes in seconds format
+    max_bytes = 1000000  # 1MB
+  }
+  
+  depends_on = [
+    google_pubsub_topic.data_topic,
+    google_storage_bucket.pubsub_export,
+    google_storage_bucket_iam_member.pubsub_storage_admin,
+    google_storage_bucket_iam_member.pubsub_storage_viewer
+  ]
+}
+
+# BigQuery Data Transfer Config from Cloud Storage
+resource "google_bigquery_data_transfer_config" "storage_to_bq" {
+  display_name           = "storage-to-bq"
+  location               = var.region
+  data_source_id         = "google_cloud_storage"
+  schedule               = "every 15 minutes"
+  destination_dataset_id = google_bigquery_dataset.analytics.dataset_id
+  service_account_name   = google_service_account.bq_transfer_sa.email
+  params = {
+    destination_table_name_template = google_bigquery_table.events.table_id
+    data_path_template = "gs://${google_storage_bucket.pubsub_export.name}/*.json" 
+    file_format        = "JSON"
+    write_disposition  = "APPEND"
+  }
+  depends_on = [
+    time_sleep.wait_for_apis,
+    google_bigquery_table.events,
+    google_project_iam_member.transfer_storage_admin,
+    google_project_iam_member.transfer_bq_editor,
+    google_storage_bucket.pubsub_export
+  ]
+}
 
 # Monitoreo básico
 resource "google_monitoring_alert_policy" "api_high_errors" {
