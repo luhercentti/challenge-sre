@@ -31,6 +31,8 @@ jobs:
         working-directory: ./infra
         env:
           TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
+          TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
+
 
       # Apply Terraform changes
       - name: Terraform Plan
@@ -38,6 +40,8 @@ jobs:
         working-directory: ./infra
         env:
           TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
+          TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
+
 
     #   # Apply Terraform changes
     #   - name: Terraform Apply
