@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 from google.cloud import bigquery
 import os
 import logging
+import json
 
 app = Flask(__name__)
 client = bigquery.Client()
@@ -14,17 +15,31 @@ logger = logging.getLogger(__name__)
 def get_events():
     try:
         project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
-        query = """
-            SELECT * 
-            FROM `{}.analytics_data.events`
+        query = f"""
+            SELECT 
+                event_id,
+                CAST(event_data AS STRING) AS event_data,
+                timestamp
+            FROM `{project_id}.analytics_data.events`
             ORDER BY timestamp DESC
             LIMIT 100
-        """.format(project_id)
+        """
         
         logger.info(f"Executing query: {query}")
-        results = client.query(query).to_dataframe()
-        return jsonify(results.to_dict('records'))
-    
+        df = client.query(query).to_dataframe()
+
+        # Try to parse event_data JSON strings
+        def safe_parse(json_str):
+            try:
+                return json.loads(json_str)
+            except (TypeError, json.JSONDecodeError):
+                return json_str  # fallback to original string
+
+        if 'event_data' in df.columns:
+            df['event_data'] = df['event_data'].apply(safe_parse)
+
+        return jsonify(df.to_dict('records'))
+
     except Exception as e:
         logger.error(f"Error fetching events: {str(e)}")
         return jsonify({"error": str(e)}), 500
