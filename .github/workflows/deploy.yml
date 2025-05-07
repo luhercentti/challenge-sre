@@ -22,7 +22,6 @@ jobs:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
           project_id: ${{ secrets.GCP_PROJECT }}
 
-
       # Configure gcloud
       - uses: google-github-actions/setup-gcloud@v1
 
@@ -31,19 +30,21 @@ jobs:
         run: terraform init
         working-directory: ./infra
         env:
-            TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
+          TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
 
       # Apply Terraform changes
       - name: Terraform Plan
         run: terraform plan
         working-directory: ./infra
         env:
-            TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
+          TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
 
     #   # Apply Terraform changes
     #   - name: Terraform Apply
     #     run: terraform apply -auto-approve
     #     working-directory: ./infra
+    #     env:
+    #       TF_VAR_redshift_password: ${{ secrets.REDSHIFT_PASSWORD }}
 
     #   # Build and deploy API
     #   - name: Build and Deploy API
