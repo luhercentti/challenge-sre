@@ -23,6 +23,8 @@ jobs:
 
       # Configure gcloud
       - uses: google-github-actions/setup-gcloud@v1
+        with:
+            project_id: ${{ secrets.GCP_PROJECT }}
 
       # Initialize Terraform
       - name: Terraform Init
