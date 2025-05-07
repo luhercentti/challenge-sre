@@ -2,3 +2,5 @@ infra/.terraform/
 infra/.terraform.lock.hcl
 infra/terraform.tfvars
 infra/terraform-key.json
+infra/tfplan.json
+infra/tfplan.binary
