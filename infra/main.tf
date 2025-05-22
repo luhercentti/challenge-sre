@@ -227,7 +227,7 @@ resource "google_cloud_run_service" "data_api" {
       containers {
         # Using a simple hello-world image for initial deployment
         # Replace with your actual API image once built
-        image = "gcr.io/cloudrun/hello"
+        image = "gcr.io/${var.gcp_project}/data-api:latest"
         
         env {
           name  = "GOOGLE_CLOUD_PROJECT"
