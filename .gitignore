@@ -7,3 +7,4 @@ infra/tfplan.binary
 infra/terraform.tfstate
 infra/terraform.tfstate.backup
 .terraform/
+terraform-key.json
