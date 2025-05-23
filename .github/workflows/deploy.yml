@@ -39,7 +39,10 @@ jobs:
             cloudresourcemanager.googleapis.com \
             pubsub.googleapis.com \
             bigquery.googleapis.com \
-            iam.googleapis.com
+            iam.googleapis.com \
+            dataflow.googleapis.com \
+            storage.googleapis.com \
+            compute.googleapis.com
 
      # 1. FIRST build and push the Docker image
       - name: Build and Push Image
