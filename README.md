@@ -1,6 +1,6 @@
 <h2><strong>Luis Angelo Hernandez Centti</strong></h2>
 
-<h3>EVENT-DRIVEN-DEMO in GCP</h3>
+<h3>EVENT-DRIVEN-ARCHITECTURE-DEMO in GCP</h3>
 
 Expected Flow
 
