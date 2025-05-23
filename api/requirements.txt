@@ -1,6 +1,6 @@
-flask==2.3.2
-gunicorn==20.1.0
-google-cloud-bigquery==3.11.3
-numpy==1.23.5
+flask==2.3.3
+google-cloud-bigquery==3.11.4
+google-cloud-pubsub==2.18.4
 pandas==2.0.3
-db-dtypes==1.1.1
+gunicorn==21.2.0
+pyarrow==12.0.1
