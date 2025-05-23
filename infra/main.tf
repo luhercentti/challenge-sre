@@ -164,7 +164,7 @@ resource "google_dataflow_job" "pubsub_to_bq" {
   region                = var.region
   service_account_email = google_service_account.dataflow_sa.email
 
-  zone = "us-central1-b"  # Try different zones: us-central1-b, us-central1-c
+  zone = "us-central1-a"  # Try different zones: us-central1-b, us-central1-c
   
   parameters = {
     inputTopic      = google_pubsub_topic.data_topic.id
