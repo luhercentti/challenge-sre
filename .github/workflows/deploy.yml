@@ -44,7 +44,7 @@ jobs:
             storage.googleapis.com \
             compute.googleapis.com
 
-     # 1. FIRST build and push the Docker image
+     # build and push the Docker image
       - name: Build and Push Image
         run: |
             cd api
